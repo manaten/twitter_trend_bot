@@ -15,10 +15,11 @@ const getTwitterTrends = async id => {
 };
 
 const TOP_TWEET_THRESHOLD_MSEC = 6 * 60 * 60 * 1000;
-const getTopTweet = async word => {
+const getTopTweet = async (word, type = 'popular') => {
   const {statuses} = await twitterClient.get('search/tweets', {
     q          : word,
-    result_type: 'popular'
+    result_type: type,
+    count      : 50
   });
 
   const [topTweet] = statuses.filter(s => new Date(s.created_at).getTime() > Date.now() - TOP_TWEET_THRESHOLD_MSEC);
@@ -54,7 +55,7 @@ const run = async (isDry = false) => {
 
   if (!isDry) {
     for (const trend of newTrends) {
-      const topTweet = await getTopTweet(trend.name);
+      const topTweet = (await getTopTweet(trend.name, 'popular')) || (await getTopTweet(trend.name, 'mixed'));
       await postMessage(
         `<${trend.url}&f=tweets|${trend.name}>` +
         (topTweet ? ` <https://twitter.com/${topTweet.user.screen_name}/status/${topTweet.id_str}|:twitter:>` : '')
