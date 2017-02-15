@@ -10,10 +10,19 @@ const twitterClient = new Twitter({consumer_key, consumer_secret, access_token_k
 const getTwitterTrends = async id => {
   const [{trends}] = await twitterClient.get('trends/place', {
     id
-    // id: 23424856 // 日本
-    // id: 1118370 // 東京
   });
   return trends;
+};
+
+const TOP_TWEET_THRESHOLD_MSEC = 6 * 60 * 60 * 1000;
+const getTopTweet = async word => {
+  const {statuses} = await twitterClient.get('search/tweets', {
+    q          : word,
+    result_type: 'popular'
+  });
+
+  const [topTweet] = statuses.filter(s => new Date(s.created_at).getTime() > Date.now() - TOP_TWEET_THRESHOLD_MSEC);
+  return topTweet;
 };
 
 const slackWebClient = new WebClient(process.env.SLACK_TOKEN);
@@ -35,22 +44,27 @@ const run = async (isDry = false) => {
     }
   }
 
+  // 23424856=Japan, 1118370=Tokyo
   const trends = _.uniqBy((await getTwitterTrends(23424856)).concat(await getTwitterTrends(1118370)), t => t.name);
-  console.log(`${trends.length}件のTwitterトレンドを取得`);
+  console.log(`Got ${trends.length} Twitter trends.`);
   // console.log(JSON.stringify(trends, null, 2));
 
   const newTrends = trends.filter(t => !trendsCache.hasOwnProperty(t.name));
-  console.log(`${newTrends.length}件の新着トレンド`);
+  console.log(`Got new ${newTrends.length} Twitter trends.`);
 
   if (!isDry) {
     for (const trend of newTrends) {
-      await postMessage(`<${trend.url}&f=tweets|${trend.name}>`);
+      const topTweet = await getTopTweet(trend.name);
+      await postMessage(
+        `<${trend.url}&f=tweets|${trend.name}>` +
+        (topTweet ? ` <https://twitter.com/${topTweet.user.screen_name}/status/${topTweet.id_str}|:twitter:>` : '')
+      );
     }
   }
   for (const trend of trends) {
     trendsCache[trend.name] = Date.now() + TREND_CACHE_EXPIRE_MSEC;
   }
-  console.log(`${Object.keys(trendsCache).length}件キャッシュがあります`);
+  console.log(`There are ${Object.keys(trendsCache).length} tweet caches.`);
 };
 
 new CronJob({
@@ -60,5 +74,5 @@ new CronJob({
   onTick  : () => run().catch(e => console.error(e))
 });
 
-// キャッシュ作成のため、起動時に一度ドライ実行
+// for initial cache creation, it should do dry-run first time.
 run(true);
