@@ -1,14 +1,16 @@
 const Twitter = require('twitter');
 const promisify = require('es6-promisify');
+const _ = require('lodash');
 const {CronJob} = require('cron');
 const {WebClient} = require('@slack/client');
 
 
 const [consumer_key, consumer_secret, access_token_key, access_token_secret] = process.env.TWITTER_TOKENS.split(':');
 const twitterClient = new Twitter({consumer_key, consumer_secret, access_token_key, access_token_secret});
-const getTwitterTrends = async () => {
+const getTwitterTrends = async id => {
   const [{trends}] = await twitterClient.get('trends/place', {
-    id: 23424856 // 日本
+    id
+    // id: 23424856 // 日本
     // id: 1118370 // 東京
   });
   return trends;
@@ -33,8 +35,9 @@ const run = async (isDry = false) => {
     }
   }
 
-  const trends = await getTwitterTrends();
+  const trends = _.uniqBy((await getTwitterTrends(23424856)).concat(await getTwitterTrends(1118370)), t => t.name);
   console.log(`${trends.length}件のTwitterトレンドを取得`);
+  // console.log(JSON.stringify(trends, null, 2));
 
   const newTrends = trends.filter(t => !trendsCache.hasOwnProperty(t.name));
   console.log(`${newTrends.length}件の新着トレンド`);

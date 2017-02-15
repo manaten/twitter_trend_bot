@@ -17,6 +17,7 @@
     "cron": "^1.2.1",
     "es6-promisify": "^5.0.0",
     "forever": "^0.15.3",
+    "lodash": "^4.17.4",
     "twitter": "^1.7.0"
   }
 }
