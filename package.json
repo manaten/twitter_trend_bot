@@ -1,0 +1,22 @@
+{
+  "name": "twitter_trend_bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": {},
+  "private": true,
+  "engines": {
+    "node": "7.2.0"
+  },
+  "scripts": {
+    "start": "forever -c 'node --harmony-async-await' index.js"
+  },
+  "author": "manaten <manaten@manaten.net> (http://manaten.net)",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@slack/client": "^3.8.1",
+    "cron": "^1.2.1",
+    "es6-promisify": "^5.0.0",
+    "forever": "^0.15.3",
+    "twitter": "^1.7.0"
+  }
+}
